@@ -13,8 +13,8 @@ using namespace std;
 
 class Effect;
 class Player;
-class GameField;
 class Card;
+class SpiesObserver;
 
 // Random seed
 static const unsigned RAND_SEED = 432;
@@ -26,19 +26,25 @@ enum PlayerAction {spying, research, work, invention};
 class GameController // : public IGameController
 {
 public:
-	GameController() {}
-	~GameController() {}
+	// Паттерн - фасад.
+	GameController();
+	~GameController();
 	void sendMessage(string message) { std::cout << message; }
+	// Инициализация игровых карт
+	void initGameCards();
+	// Очистка памяти, выделенной на карты
+	void deleteGameCards();
 	int createPlayers(int players_num);
-	void getCardsToPlayerFromDeck(int player, int cards_num);
-	void getActions(vector<PlayerAction>* actions);
+	// Получить действия игроков
+	void getActions(vector<PlayerAction>& actions);
+	// Выполнить действия игроков
 	void performActions(vector<PlayerAction> actions);
-	void payProfitForSpies(vector<PlayerAction> actions);
-	void performPlayerAction(int player_number, PlayerAction action, vector<Effect*>& effects_of_turn);
-	void performEffect(Effect* eff);
+	// Проверка, определился ли победитель
 	bool weHaveWinner();
-	void printStatistics();
-	int play();
+
+	enum DeckType { mainDeck, throwDeck };
+	// Мешаем колоду
+	void shuffleDeckAndSetIndexToZero(DeckType);
 
 	// Игровые карты
 	vector<Card*> deck;
@@ -47,17 +53,17 @@ public:
 	// Индекс в колоде в данный момент
 	int current_deck_index;
 
-	enum DeckType { mainDeck, throwDeck };
-
-	void initGameCards();
-	// Очистка памяти, выделенной на карты
-	void deleteGameCards();
-	// Мешаем колоду
-	void shuffleDeckAndSetIndexToZero(DeckType);
-
 private:
+	// Под фасадом
+	void getCardsToPlayerFromDeck(int player, int cards_num);
+	void payProfitForSpies(vector<PlayerAction> actions);
+	void performPlayerAction(int player_number, PlayerAction action, vector<Effect*>& effects_of_turn);
+	void performEffect(Effect* eff);
+	void printStatistics();
+
 	vector<Player*> players;
 	int players_number;
+	SpiesObserver* spiesObs;
 };
 
 // Класс карты
@@ -112,6 +118,8 @@ public:
 	Card* getCard(int card_number);
 	// Добавить карту из колоды
 	void addCard(Card* card);
+	// Привязать обсервер шпионов
+	void addSpiesObserver(SpiesObserver* spiesObserver) { spiesObs = spiesObserver; }
 	// Getters
 	Spies getSpies() { return spies; }
 	int getMoney() { return money; }
@@ -127,6 +135,7 @@ private:
 	Spies spies;
 	bool inGame;
 	int points;
+	SpiesObserver* spiesObs;
 };
 
 // Эффект на карте изобретения.
@@ -156,4 +165,21 @@ private:
 	list<GameStuff> to_add_or_decrease;
 	// Тип, от которого зависит количество добавляемого
 	GameStuff on_which_depend;
+};
+
+// Паттерн observer
+// В случае, если игрок сходил на определенное поле, сообщает об этом его соседу
+class SpiesObserver
+{
+public:
+	SpiesObserver() { players = vector<Player*>(0); }
+	~SpiesObserver() {}
+
+	void subscribe(Player* player) { players.push_back(player); actions.push_back((PlayerAction)0); }
+	void registerAction(int playerId, PlayerAction action) { actions[playerId] = action; }
+	void handleAction(int playerId);
+
+private:
+	vector<Player*> players;
+	vector<PlayerAction> actions;
 };

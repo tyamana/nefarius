@@ -2,8 +2,6 @@
 #include <iostream>
 #include "nefarius.h"
 
-using std::cin;
-using std::cout;
 using std::vector;
 
 void play_game()
@@ -21,7 +19,7 @@ void play_game()
 	{
 		gameCtrl->sendMessage("New turn!\n");
 		vector<PlayerAction> actions(2);
-		gameCtrl->getActions(&actions);
+		gameCtrl->getActions(actions);
 		gameCtrl->performActions(actions);
 
 	} while (!gameCtrl->weHaveWinner());

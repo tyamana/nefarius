@@ -45,6 +45,7 @@ PlayerAction Player::getAction()
 {
 	int action;
 	cin >> action;
+	spiesObs->registerAction(id, (PlayerAction)action);
 	return (PlayerAction)action;
 }
 
@@ -89,13 +90,26 @@ void Player::addCard(Card* card)
 //GameController
 //----------------------------------------------------------------------------
 
+GameController::GameController()
+{
+	players = vector<Player*>(0);
+	players_number = 0;
+	spiesObs = new SpiesObserver();
+}
+
+GameController::~GameController()
+{
+	delete spiesObs;
+}
+
 int GameController::createPlayers(int players_num)
 {
 	players_number = players_num;
 	players.resize(players_num);
+
 	for (int i = 0; i < players_num; i++)
 	{
-		//создаем 
+		// Выдаем игроку карты
 		list<Card*>* cards = new list<Card*>();
 		for(int j = 0; j < 3; j++)
 		{
@@ -104,9 +118,15 @@ int GameController::createPlayers(int players_num)
 			current_deck_index++;
 		}
 		
+		// Создаем игрока
 		Player* player = new Player(i, 10, cards, true);
 		if (!player)
 			return -1;
+
+		//Подписываем его на обсервер шпионов
+		spiesObs->subscribe(player);
+		player->addSpiesObserver(spiesObs);
+
 		players[i] = player;
 	}
 
@@ -114,6 +134,7 @@ int GameController::createPlayers(int players_num)
 }
 
 // Создаем игровые карты
+// #TO_FIX ТУТ БУДЕТ НОРМАЛЬНЫЙ ПАТТЕРН СОЗДАНИЯ
 void GameController::initGameCards()
 {
 	deck.push_back(new Card(12, 5));
@@ -171,13 +192,13 @@ void GameController::getCardsToPlayerFromDeck(int player_index, int cards_num)
 	}
 }
 
-void GameController::getActions(vector<PlayerAction>* actions)
+void GameController::getActions(vector<PlayerAction>& actions)
 {
-	for (int i = 0; i < players_number; i++)
+	for (int player = 0; player < players_number; player++)
 	{
-		cout << "It's your turn, player" << i << "! [Put 0 - spying, 1 - research, 2 - work, 3 - invention]\n";
-		PlayerAction action = players[i]->getAction();
-		(*actions)[i] = action;
+		cout << "It's your turn, player" << player << "! [Put 0 - spying, 1 - research, 2 - work, 3 - invention]\n";
+		PlayerAction action = players[player]->getAction();
+		actions[player] = action;
 	}
 }
 
@@ -187,35 +208,13 @@ void GameController::getActions(vector<PlayerAction>* actions)
 void GameController::payProfitForSpies(vector<PlayerAction> actions)
 {
 	for (int player = 0; player < players_number; player++)
-	{
-		PlayerAction left_neighbour_action, right_neighbour_action;
-		if (player == 0)
-		{
-			left_neighbour_action = actions[players_number - 1];
-			right_neighbour_action = actions[player + 1];
-		}
-		else if (player == players_number - 1)
-		{
-			left_neighbour_action = actions[player - 1];
-			right_neighbour_action = actions[0];
-		}
-		else
-		{
-			left_neighbour_action = actions[player - 1];
-			right_neighbour_action = actions[player + 1];
-		}
-
-		Player::Spies spies = players[player]->getSpies();
-		if (players_number > 2)
-			players[player]->increaseMoney(spies.spies_map[left_neighbour_action] + spies.spies_map[right_neighbour_action]);
-		else
-			players[player]->increaseMoney(spies.spies_map[left_neighbour_action]);
-	}
+		spiesObs->handleAction(player);
 }
 
 // Выполнение действия игрока
 void GameController::performPlayerAction(int player_number, PlayerAction action, vector<Effect*>& effects_of_turn)
 {
+	//Поведенческий паттерн - стратегии
 	switch (action)
 	{
 		case spying:
@@ -293,8 +292,8 @@ void GameController::performActions(vector<PlayerAction> actions)
 	vector<Effect*> effects_of_turn;
 
 	// Выполнение действий
-	for (int i = 0; i < players_number; i++)
-		performPlayerAction(i, actions[i], effects_of_turn);
+	for (int player = 0; player < players_number; player++)
+		performPlayerAction(player, actions[player], effects_of_turn);
 
 	// Исполнение эффектов
 	for (vector<Effect*>::iterator it = effects_of_turn.begin(); it != effects_of_turn.end(); it++)
@@ -341,4 +340,37 @@ bool GameController::weHaveWinner()
 	printStatistics();
 
 	return weHaveSingleWinner;
+}
+
+//SpiesObserver
+//---------------------------------------------------------------------------
+
+// Нужно "сказать" правому и леваому соседу о том, что игрок так сходил
+void SpiesObserver::handleAction(int playerId)
+{
+	Player* left_neighbour;
+	Player* right_neighbour;
+	int players_number = players.size();
+
+	if (playerId == 0)
+	{
+		left_neighbour = players[players_number - 1];
+		right_neighbour = players[playerId + 1];
+	}
+	else if (playerId == players_number - 1)
+	{
+		left_neighbour = players[playerId - 1];
+		right_neighbour = players[0];
+	}
+	else
+	{
+		left_neighbour = players[playerId - 1];
+		right_neighbour = players[playerId + 1];
+	}
+
+
+	left_neighbour->increaseMoney(left_neighbour->getSpies().spies_map[actions[playerId]]);
+	// Если игроков двое, то левый и правый сосед - один и тот же
+	if (players_number > 2)
+		right_neighbour->increaseMoney(right_neighbour->getSpies().spies_map[actions[playerId]]);
 }
