@@ -114,7 +114,6 @@ int GameController::createPlayers(int players_num)
 		for(int j = 0; j < 3; j++)
 		{
 			cards->push_back(deck[current_deck_index]);
-			
 			current_deck_index++;
 		}
 		
@@ -134,18 +133,21 @@ int GameController::createPlayers(int players_num)
 }
 
 // —оздаем игровые карты
-// #TO_FIX “”“ Ѕ”ƒ≈“ Ќќ–ћјЋ№Ќџ… ѕј““≈–Ќ —ќ«ƒјЌ»я
 void GameController::initGameCards()
 {
-	deck.push_back(new Card(12, 5));
-	deck.push_back(new Card(12, 5));
-	deck.push_back(new Card(12, 5));
-	deck.push_back(new Card(8, 4));
-	deck.push_back(new Card(8, 4));
-	deck.push_back(new Card(8, 4));
-	deck.push_back(new Card(16, 6));
-	deck.push_back(new Card(16, 6));
-	deck.push_back(new Card(16, 6));
+	CardFactory cardFactory;
+	for (int i = 0; i < 12; i++)
+		deck.push_back(cardFactory.createCard(CardFactory::noEffects));
+
+	//deck.push_back(new Card(12, 5));
+	//deck.push_back(new Card(12, 5));
+	//deck.push_back(new Card(12, 5));
+	//deck.push_back(new Card(8, 4));
+	//deck.push_back(new Card(8, 4));
+	//deck.push_back(new Card(8, 4));
+	//deck.push_back(new Card(16, 6));
+	//deck.push_back(new Card(16, 6));
+	//deck.push_back(new Card(16, 6));
 
 	current_deck_index = 0;
 }
@@ -158,10 +160,8 @@ void GameController::deleteGameCards()
 		delete *it;
 }
 
-#pragma warning(disable : 4244)
 void GameController::shuffleDeckAndSetIndexToZero(DeckType deckType)
 {
-	srand(time(0));
 	switch (deckType)
 	{
 		case mainDeck:
@@ -183,6 +183,7 @@ void GameController::getCardsToPlayerFromDeck(int player_index, int cards_num)
 		{
 			shuffleDeckAndSetIndexToZero(throwDeck);
 			swap(deck, throw_deck);
+			throw_deck.clear();
 		}
 		else
 		{
@@ -373,4 +374,30 @@ void SpiesObserver::handleAction(int playerId)
 	// ≈сли игроков двое, то левый и правый сосед - один и тот же
 	if (players_number > 2)
 		right_neighbour->increaseMoney(right_neighbour->getSpies().spies_map[actions[playerId]]);
+}
+
+Card* CardFactory::createCard(CardFactory::creationFlag flag)
+{
+	Card* newCard = NULL;
+
+	switch (flag)
+	{
+		case noEffects:
+			int type = rand() % (int)CardFactory::noEffectType3 + (int)CardFactory::noEffectType1;
+			switch ((CardFactory::cardType)type)
+			{
+				case noEffectType1:
+					newCard = new Card(12, 5);
+					break;
+				case noEffectType2:
+					newCard = new Card(8, 4);
+					break;
+				case noEffectType3:
+					newCard = new Card(16, 6);
+					break;
+			}
+			break;
+	}
+
+	return newCard;
 }

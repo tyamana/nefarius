@@ -183,3 +183,17 @@ private:
 	vector<Player*> players;
 	vector<PlayerAction> actions;
 };
+
+// Паттерн фабрика
+// Содает карты
+class CardFactory
+{
+public:
+	CardFactory() {}
+	~CardFactory() {}
+
+	enum cardType { noEffectType1, noEffectType2, noEffectType3 };
+	enum creationFlag { noEffects };
+
+	Card* createCard(creationFlag);
+};

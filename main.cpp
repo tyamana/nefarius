@@ -4,28 +4,29 @@
 
 using std::vector;
 
+#pragma warning(disable : 4244)
 void play_game()
 {
-	GameController* gameCtrl = new GameController();
+	srand(time(0));
+	GameController gameCtrl;
 
-	gameCtrl->sendMessage("Game is ready to start!\n");
+	gameCtrl.sendMessage("Game is ready to start!\n");
 
-	gameCtrl->initGameCards();
-	gameCtrl->shuffleDeckAndSetIndexToZero(GameController::mainDeck);
+	gameCtrl.initGameCards();
+	gameCtrl.shuffleDeckAndSetIndexToZero(GameController::mainDeck);
 
-	gameCtrl->createPlayers(2);
+	gameCtrl.createPlayers(2);
 
 	do
 	{
-		gameCtrl->sendMessage("New turn!\n");
+		gameCtrl.sendMessage("New turn!\n");
 		vector<PlayerAction> actions(2);
-		gameCtrl->getActions(actions);
-		gameCtrl->performActions(actions);
+		gameCtrl.getActions(actions);
+		gameCtrl.performActions(actions);
 
-	} while (!gameCtrl->weHaveWinner());
+	} while (!gameCtrl.weHaveWinner());
 
-	gameCtrl->deleteGameCards();
-	delete gameCtrl;
+	gameCtrl.deleteGameCards();
 }
 
 int main()
